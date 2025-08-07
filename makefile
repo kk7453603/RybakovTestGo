@@ -49,6 +49,12 @@ proto:
 		--openapiv2_opt=logtostderr=true \
 		$(PROTO_DIR)/*.proto
 	@echo "✅ Protobuf код сгенерирован успешно!"
+	@echo "Исправление OpenAPI файла..."
+	@sudo apt install -y jq
+	@./fix-swagger-correct.sh
+	@echo "Обновление зависимостей..."
+	@go mod tidy
+	@echo "✅ Protobuf код сгенерирован успешно!"
 
 # Установка зависимостей для protobuf
 install-proto-deps: ## Установить зависимости для protobuf

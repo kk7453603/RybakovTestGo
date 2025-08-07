@@ -1,9 +1,14 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "service.proto",
-    "version": "version not set"
+    "title": "Crypto Currency API",
+    "version": "1.0.0",
+    "description": "API для управления криптовалютами"
   },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
   "tags": [
     {
       "name": "CurrencyService"

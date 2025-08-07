@@ -27,8 +27,7 @@ services:
   # gRPC сервер с HTTP gateway
   crypto-service:
     build:
-      context: ..
-      dockerfile: docker/Dockerfile
+      context: .
     container_name: crypto_service
     restart: unless-stopped
     environment:
@@ -66,12 +65,12 @@ services:
     container_name: crypto_swagger
     restart: unless-stopped
     environment:
-      SWAGGER_JSON: /swagger/openapi.yaml
+      SWAGGER_JSON: /swagger/service.swagger.json
       BASE_URL: /swagger
     ports:
       - "8081:8080"
     volumes:
-      - ../docs:/swagger
+      - ./docs:/swagger
     depends_on:
       - crypto-service
     networks:

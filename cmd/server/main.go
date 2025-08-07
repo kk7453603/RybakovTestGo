@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -42,20 +43,31 @@ func main() {
 	// Создаем и запускаем gRPC сервер
 	grpcServer := grpc.NewGRPCServer(currencyService, cfg.GRPC.Port, cfg.Server.Port)
 
+	// Канал для ошибок сервера
+	serverErr := make(chan error, 1)
+
 	// Запускаем сервер в горутине
 	go func() {
-		if err := grpcServer.Start(); err != nil {
-			log.Fatalf("Failed to start server: %v", err)
-		}
+		serverErr <- grpcServer.Start()
 	}()
 
 	// Обработка graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
 
-	log.Println("Shutting down server...")
+	select {
+	case err := <-serverErr:
+		log.Fatalf("❌ Server error: %v", err)
+	case sig := <-quit:
+		log.Printf("🔄 Received signal: %v", sig)
+	}
+
+	log.Println("🛑 Shutting down server...")
 	grpcServer.Stop()
+
+	// Даем время для graceful shutdown
+	time.Sleep(2 * time.Second)
+	log.Println("✅ Server stopped successfully")
 }
 
 // connectDatabase подключается к базе данных PostgreSQL
