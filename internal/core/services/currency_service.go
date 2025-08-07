@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"github.com/kk7453603/RybakovTestGo/internal/core/domain"
@@ -14,7 +15,6 @@ type currencyService struct {
 	priceProvider ports.ExternalPriceProvider
 }
 
-// NewCurrencyService создает новый экземпляр сервиса
 func NewCurrencyService(
 	currencyRepo ports.CurrencyRepository,
 	priceRepo ports.PriceRepository,
@@ -28,13 +28,11 @@ func NewCurrencyService(
 }
 
 func (s *currencyService) AddCurrency(ctx context.Context, symbol, name string) (*domain.Currency, error) {
-	// Проверяем, не существует ли уже такая криптовалюта
 	existing, err := s.currencyRepo.GetBySymbol(ctx, symbol)
 	if err == nil && existing != nil {
 		return nil, domain.ErrCurrencyAlreadyExists
 	}
 
-	// Создаем новую криптовалюту
 	currency := &domain.Currency{
 		Symbol:    symbol,
 		Name:      name,
@@ -42,17 +40,14 @@ func (s *currencyService) AddCurrency(ctx context.Context, symbol, name string) 
 		UpdatedAt: time.Now(),
 	}
 
-	// Валидируем данные
 	if err := currency.Validate(); err != nil {
 		return nil, err
 	}
 
-	// Сохраняем в базу данных
 	if err := s.currencyRepo.Create(ctx, currency); err != nil {
 		return nil, err
 	}
 
-	// Пытаемся получить текущую цену и сохранить ее
 	if currentPrice, err := s.priceProvider.GetCurrentPrice(ctx, symbol); err == nil {
 		_ = s.priceRepo.SavePrice(ctx, currentPrice)
 	}
@@ -61,7 +56,6 @@ func (s *currencyService) AddCurrency(ctx context.Context, symbol, name string) 
 }
 
 func (s *currencyService) RemoveCurrency(ctx context.Context, symbol string) error {
-	// Проверяем существование криптовалюты
 	existing, err := s.currencyRepo.GetBySymbol(ctx, symbol)
 	if err != nil || existing == nil {
 		return domain.ErrCurrencyNotFound
@@ -71,21 +65,17 @@ func (s *currencyService) RemoveCurrency(ctx context.Context, symbol string) err
 }
 
 func (s *currencyService) GetCurrencyPrice(ctx context.Context, symbol string, timestamp time.Time) (*domain.CurrencyPrice, error) {
-	// Проверяем, что криптовалюта отслеживается
 	_, err := s.currencyRepo.GetBySymbol(ctx, symbol)
 	if err != nil {
 		return nil, domain.ErrCurrencyNotFound
 	}
 
-	// Если timestamp не указан, возвращаем последнюю цену
 	if timestamp.IsZero() {
 		return s.priceRepo.GetLatestPrice(ctx, symbol)
 	}
 
-	// Ищем цену по конкретному времени
 	price, err := s.priceRepo.GetPriceByTimestamp(ctx, symbol, timestamp)
 	if err != nil {
-		// Если не найдено в локальной БД, пытаемся получить из внешнего API
 		return s.priceProvider.GetCurrentPrice(ctx, symbol)
 	}
 
@@ -97,28 +87,23 @@ func (s *currencyService) ListCurrencies(ctx context.Context) ([]*domain.Currenc
 }
 
 func (s *currencyService) GetPriceHistory(ctx context.Context, symbol string, startTime, endTime time.Time, limit int) ([]*domain.CurrencyPrice, error) {
-	// Проверяем, что криптовалюта отслеживается
 	_, err := s.currencyRepo.GetBySymbol(ctx, symbol)
 	if err != nil {
-		return nil, domain.ErrCurrencyNotFound
+		return nil, err
 	}
 
-	// Получаем исторические данные из локальной БД
-	localPrices, err := s.priceRepo.GetPriceHistory(ctx, symbol, startTime, endTime, limit)
-	if err != nil || len(localPrices) == 0 {
-		// Если данных нет локально, пытаемся получить из внешнего API
+	prices, err := s.priceRepo.GetPriceHistory(ctx, symbol, startTime, endTime, limit)
+
+	if err != nil || len(prices) == 0 {
+		log.Printf("📡 Запрашиваем исторические данные у внешнего провайдера для %s", symbol)
 		externalPrices, extErr := s.priceProvider.GetHistoricalPrices(ctx, symbol, startTime, endTime)
-		if extErr != nil {
-			return nil, extErr
+		if extErr == nil && len(externalPrices) > 0 {
+			for _, price := range externalPrices {
+				s.priceRepo.SavePrice(ctx, price)
+			}
+			return externalPrices[:min(len(externalPrices), limit)], nil
 		}
-
-		// Сохраняем полученные данные в локальную БД
-		for _, price := range externalPrices {
-			_ = s.priceRepo.SavePrice(ctx, price)
-		}
-
-		return externalPrices, nil
 	}
 
-	return localPrices, nil
+	return prices, err
 }

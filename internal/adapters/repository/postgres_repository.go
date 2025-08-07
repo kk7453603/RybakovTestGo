@@ -34,22 +34,18 @@ func (CurrencyPriceModel) TableName() string {
 	return "currency_prices"
 }
 
-// PostgreSQL репозиторий для криптовалют
 type postgresRepository struct {
 	db *gorm.DB
 }
 
-// NewPostgresRepository создает новый экземпляр PostgreSQL репозитория
 func NewPostgresRepository(db *gorm.DB) (ports.CurrencyRepository, ports.PriceRepository) {
 	repo := &postgresRepository{db: db}
 
-	// Автомиграция таблиц
 	db.AutoMigrate(&CurrencyModel{}, &CurrencyPriceModel{})
 
 	return repo, repo
 }
 
-// Реализация CurrencyRepository
 func (r *postgresRepository) Create(ctx context.Context, currency *domain.Currency) error {
 	model := &CurrencyModel{
 		Symbol:    currency.Symbol,
@@ -143,7 +139,6 @@ func (r *postgresRepository) Update(ctx context.Context, currency *domain.Curren
 	return nil
 }
 
-// Реализация PriceRepository
 func (r *postgresRepository) SavePrice(ctx context.Context, price *domain.CurrencyPrice) error {
 	model := &CurrencyPriceModel{
 		Symbol:    price.Symbol,

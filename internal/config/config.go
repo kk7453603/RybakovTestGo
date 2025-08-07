@@ -9,6 +9,7 @@ type Config struct {
 	Database DatabaseConfig
 	Server   ServerConfig
 	GRPC     GRPCConfig
+	APIToken string
 }
 
 type DatabaseConfig struct {
@@ -54,6 +55,7 @@ func Load() (*Config, error) {
 			Port: grpcPort,
 			Host: getEnv("GRPC_HOST", "0.0.0.0"),
 		},
+		APIToken: getEnv("API_TOKEN", ""),
 	}, nil
 }
 

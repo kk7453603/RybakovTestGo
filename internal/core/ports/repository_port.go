@@ -7,7 +7,6 @@ import (
 	"github.com/kk7453603/RybakovTestGo/internal/core/domain"
 )
 
-// CurrencyRepository определяет интерфейс для работы с базой данных
 type CurrencyRepository interface {
 	Create(ctx context.Context, currency *domain.Currency) error
 	GetBySymbol(ctx context.Context, symbol string) (*domain.Currency, error)
@@ -16,7 +15,6 @@ type CurrencyRepository interface {
 	Update(ctx context.Context, currency *domain.Currency) error
 }
 
-// PriceRepository определяет интерфейс для работы с ценами
 type PriceRepository interface {
 	SavePrice(ctx context.Context, price *domain.CurrencyPrice) error
 	GetLatestPrice(ctx context.Context, symbol string) (*domain.CurrencyPrice, error)
@@ -24,7 +22,6 @@ type PriceRepository interface {
 	GetPriceHistory(ctx context.Context, symbol string, startTime, endTime time.Time, limit int) ([]*domain.CurrencyPrice, error)
 }
 
-// ExternalPriceProvider определяет интерфейс для получения цен из внешних источников
 type ExternalPriceProvider interface {
 	GetCurrentPrice(ctx context.Context, symbol string) (*domain.CurrencyPrice, error)
 	GetHistoricalPrices(ctx context.Context, symbol string, startTime, endTime time.Time) ([]*domain.CurrencyPrice, error)

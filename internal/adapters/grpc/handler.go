@@ -14,20 +14,17 @@ import (
 	currencyv1 "github.com/kk7453603/RybakovTestGo/pkg/api/gen"
 )
 
-// CurrencyHandler реализует gRPC сервер для работы с криптовалютами
 type CurrencyHandler struct {
 	currencyv1.UnimplementedCurrencyServiceServer
 	service ports.CurrencyService
 }
 
-// NewCurrencyHandler создает новый gRPC обработчик
 func NewCurrencyHandler(service ports.CurrencyService) *CurrencyHandler {
 	return &CurrencyHandler{
 		service: service,
 	}
 }
 
-// AddCurrency добавляет новую криптовалюту в список наблюдения
 func (h *CurrencyHandler) AddCurrency(ctx context.Context, req *currencyv1.AddCurrencyRequest) (*currencyv1.CurrencyResponse, error) {
 	if req.Symbol == "" {
 		return nil, status.Error(codes.InvalidArgument, "symbol is required")
@@ -47,7 +44,6 @@ func (h *CurrencyHandler) AddCurrency(ctx context.Context, req *currencyv1.AddCu
 	}, nil
 }
 
-// RemoveCurrency удаляет криптовалюту из списка наблюдения
 func (h *CurrencyHandler) RemoveCurrency(ctx context.Context, req *currencyv1.RemoveCurrencyRequest) (*emptypb.Empty, error) {
 	if req.Symbol == "" {
 		return nil, status.Error(codes.InvalidArgument, "symbol is required")
@@ -61,7 +57,6 @@ func (h *CurrencyHandler) RemoveCurrency(ctx context.Context, req *currencyv1.Re
 	return &emptypb.Empty{}, nil
 }
 
-// GetCurrencyPrice получает цену конкретной криптовалюты
 func (h *CurrencyHandler) GetCurrencyPrice(ctx context.Context, req *currencyv1.GetCurrencyPriceRequest) (*currencyv1.CurrencyPriceResponse, error) {
 	if req.Symbol == "" {
 		return nil, status.Error(codes.InvalidArgument, "symbol is required")
@@ -82,7 +77,6 @@ func (h *CurrencyHandler) GetCurrencyPrice(ctx context.Context, req *currencyv1.
 	}, nil
 }
 
-// ListCurrencies получает список всех отслеживаемых криптовалют
 func (h *CurrencyHandler) ListCurrencies(ctx context.Context, req *emptypb.Empty) (*currencyv1.ListCurrenciesResponse, error) {
 	currencies, err := h.service.ListCurrencies(ctx)
 	if err != nil {
@@ -99,7 +93,6 @@ func (h *CurrencyHandler) ListCurrencies(ctx context.Context, req *emptypb.Empty
 	}, nil
 }
 
-// GetPriceHistory получает исторические данные о ценах
 func (h *CurrencyHandler) GetPriceHistory(ctx context.Context, req *currencyv1.GetPriceHistoryRequest) (*currencyv1.PriceHistoryResponse, error) {
 	if req.Symbol == "" {
 		return nil, status.Error(codes.InvalidArgument, "symbol is required")
@@ -115,7 +108,7 @@ func (h *CurrencyHandler) GetPriceHistory(ctx context.Context, req *currencyv1.G
 
 	limit := int(req.Limit)
 	if limit <= 0 {
-		limit = 100 // Значение по умолчанию
+		limit = 100
 	}
 
 	prices, err := h.service.GetPriceHistory(ctx, req.Symbol, startTime, endTime, limit)
@@ -133,7 +126,6 @@ func (h *CurrencyHandler) GetPriceHistory(ctx context.Context, req *currencyv1.G
 	}, nil
 }
 
-// Вспомогательные методы для конвертации
 func (h *CurrencyHandler) domainToProtoCurrency(currency *domain.Currency) *currencyv1.Currency {
 	return &currencyv1.Currency{
 		Id:        currency.ID,
@@ -153,7 +145,6 @@ func (h *CurrencyHandler) domainToProtoCurrencyPrice(price *domain.CurrencyPrice
 	}
 }
 
-// Обработка ошибок
 func (h *CurrencyHandler) handleError(err error) error {
 	switch err {
 	case domain.ErrCurrencyNotFound:

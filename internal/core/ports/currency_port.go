@@ -7,7 +7,7 @@ import (
 	"github.com/kk7453603/RybakovTestGo/internal/core/domain"
 )
 
-// CurrencyService определяет интерфейс для бизнес-логики работы с криптовалютами
+
 type CurrencyService interface {
 	AddCurrency(ctx context.Context, symbol, name string) (*domain.Currency, error)
 	RemoveCurrency(ctx context.Context, symbol string) error

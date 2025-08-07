@@ -19,39 +19,30 @@ import (
 )
 
 func main() {
-	// Загружаем конфигурацию
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Подключаемся к базе данных
 	db, err := connectDatabase(cfg.Database)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Создаем репозитории
 	currencyRepo, priceRepo := repository.NewPostgresRepository(db)
 
-	// Создаем внешний провайдер цен
-	priceProvider := repository.NewExternalPriceProvider()
+	priceProvider := repository.NewExternalPriceProvider(*cfg)
 
-	// Создаем сервис
 	currencyService := services.NewCurrencyService(currencyRepo, priceRepo, priceProvider)
 
-	// Создаем и запускаем gRPC сервер
 	grpcServer := grpc.NewGRPCServer(currencyService, cfg.GRPC.Port, cfg.Server.Port)
 
-	// Канал для ошибок сервера
 	serverErr := make(chan error, 1)
 
-	// Запускаем сервер в горутине
 	go func() {
 		serverErr <- grpcServer.Start()
 	}()
 
-	// Обработка graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -65,12 +56,10 @@ func main() {
 	log.Println("🛑 Shutting down server...")
 	grpcServer.Stop()
 
-	// Даем время для graceful shutdown
 	time.Sleep(2 * time.Second)
 	log.Println("✅ Server stopped successfully")
 }
 
-// connectDatabase подключается к базе данных PostgreSQL
 func connectDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s TimeZone=%s",
 		cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode, cfg.Timezone)
@@ -82,7 +71,6 @@ func connectDatabase(cfg config.DatabaseConfig) (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// Проверяем соединение
 	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, err
