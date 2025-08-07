@@ -65,7 +65,7 @@ func (r *postgresRepository) Create(ctx context.Context, currency *domain.Curren
 
 func (r *postgresRepository) GetBySymbol(ctx context.Context, symbol string) (*domain.Currency, error) {
 	var model CurrencyModel
-	result := r.db.WithContext(ctx).Where("symbol = ?", symbol).First(&model)
+	result := r.db.WithContext(ctx).Where("UPPER(symbol) = UPPER(?)", symbol).First(&model)
 
 	if result.Error != nil {
 		if result.Error == gorm.ErrRecordNotFound {

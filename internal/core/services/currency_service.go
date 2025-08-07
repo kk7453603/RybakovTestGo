@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/kk7453603/RybakovTestGo/internal/core/domain"
@@ -28,6 +29,7 @@ func NewCurrencyService(
 }
 
 func (s *currencyService) AddCurrency(ctx context.Context, symbol, name string) (*domain.Currency, error) {
+	symbol = strings.ToUpper(symbol)
 	existing, err := s.currencyRepo.GetBySymbol(ctx, symbol)
 	if err == nil && existing != nil {
 		return nil, domain.ErrCurrencyAlreadyExists
@@ -65,6 +67,7 @@ func (s *currencyService) RemoveCurrency(ctx context.Context, symbol string) err
 }
 
 func (s *currencyService) GetCurrencyPrice(ctx context.Context, symbol string, timestamp time.Time) (*domain.CurrencyPrice, error) {
+	symbol = strings.ToUpper(symbol)
 	_, err := s.currencyRepo.GetBySymbol(ctx, symbol)
 	if err != nil {
 		return nil, domain.ErrCurrencyNotFound
