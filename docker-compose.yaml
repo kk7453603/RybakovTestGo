@@ -1,0 +1,100 @@
+version: '3.9'
+
+services:
+  # PostgreSQL база данных
+  postgres:
+    image: postgres:15-alpine
+    container_name: crypto_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: crypto_currency_db
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - crypto_network
+
+  # gRPC сервер с HTTP gateway
+  crypto-service:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: crypto_service
+    restart: unless-stopped
+    environment:
+      # Database
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: crypto_currency_db
+      DB_SSL_MODE: disable
+      DB_TIMEZONE: UTC
+      # Server
+      SERVER_PORT: 8080
+      SERVER_HOST: 0.0.0.0
+      # gRPC
+      GRPC_PORT: 9090
+      GRPC_HOST: 0.0.0.0
+    ports:
+      - "8080:8080"  # HTTP Gateway
+      - "9090:9090"  # gRPC Server
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8080"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - crypto_network
+
+  # Swagger UI для документации
+  swagger-ui:
+    image: swaggerapi/swagger-ui:v4.15.5
+    container_name: crypto_swagger
+    restart: unless-stopped
+    environment:
+      SWAGGER_JSON: /swagger/openapi.yaml
+      BASE_URL: /swagger
+    ports:
+      - "8081:8080"
+    volumes:
+      - ../docs:/swagger
+    depends_on:
+      - crypto-service
+    networks:
+      - crypto_network
+
+  # Adminer для управления базой данных
+  adminer:
+    image: adminer:4.8.1
+    container_name: crypto_adminer
+    restart: unless-stopped
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8082:8080"
+    depends_on:
+      - postgres
+    networks:
+      - crypto_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  crypto_network:
+    driver: bridge

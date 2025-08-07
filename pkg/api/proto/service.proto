@@ -1,0 +1,111 @@
+syntax = "proto3";
+
+package currency.v1;
+
+option go_package = "github.com/kk7453603/RybakovTestGo/pkg/api/gen/currency";
+
+import "google/api/annotations.proto";
+import "google/api/http.proto";         
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Сервис для работы с криптовалютами
+service CurrencyService {
+  // Добавление криптовалюты в список наблюдения
+  rpc AddCurrency(AddCurrencyRequest) returns (CurrencyResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/currency"
+      body: "*"
+    };
+  }
+  
+  // Удаление криптовалюты из списка наблюдения
+  rpc RemoveCurrency(RemoveCurrencyRequest) returns (google.protobuf.Empty) {
+    option (google.api.http) = {
+      delete: "/api/v1/currency/{symbol}"
+    };
+  }
+  
+  // Получение цены конкретной криптовалюты
+  rpc GetCurrencyPrice(GetCurrencyPriceRequest) returns (CurrencyPriceResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/currency/{symbol}/price"
+    };
+  }
+  
+  // Получение списка всех отслеживаемых криптовалют
+  rpc ListCurrencies(google.protobuf.Empty) returns (ListCurrenciesResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/currencies"
+    };
+  }
+  
+  // Получение исторических данных о ценах
+  rpc GetPriceHistory(GetPriceHistoryRequest) returns (PriceHistoryResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/currency/{symbol}/history"
+    };
+  }
+}
+
+// Модель криптовалюты
+message Currency {
+  int64 id = 1;
+  string symbol = 2;
+  string name = 3;
+  google.protobuf.Timestamp created_at = 4;
+  google.protobuf.Timestamp updated_at = 5;
+}
+
+// Модель цены криптовалюты
+message CurrencyPrice {
+  int64 id = 1;
+  string symbol = 2;
+  double price = 3;
+  google.protobuf.Timestamp timestamp = 4;
+}
+
+// Запрос на добавление криптовалюты
+message AddCurrencyRequest {
+  string symbol = 1;
+  string name = 2;
+}
+
+// Ответ с информацией о криптовалюте
+message CurrencyResponse {
+  Currency currency = 1;
+}
+
+// Запрос на удаление криптовалюты
+message RemoveCurrencyRequest {
+  string symbol = 1;
+}
+
+// Запрос цены криптовалюты
+message GetCurrencyPriceRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp timestamp = 2;
+}
+
+// Ответ с ценой криптовалюты
+message CurrencyPriceResponse {
+  CurrencyPrice price = 1;
+}
+
+// Ответ со списком криптовалют
+message ListCurrenciesResponse {
+  repeated Currency currencies = 1;
+}
+
+// Запрос исторических данных
+message GetPriceHistoryRequest {
+  string symbol = 1;
+  google.protobuf.Timestamp start_time = 2;
+  google.protobuf.Timestamp end_time = 3;
+  int32 limit = 4;
+}
+
+// Ответ с историческими данными
+message PriceHistoryResponse {
+  repeated CurrencyPrice prices = 1;
+}
